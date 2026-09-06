@@ -55,7 +55,12 @@
 
     <script type="module">
       import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-      import { getAuth, GoogleAuthProvider, signInWithPopup } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+      import {
+        getAuth,
+        GoogleAuthProvider,
+        getRedirectResult,
+        signInWithRedirect
+      } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 
       const firebaseConfig = {
         apiKey: 'AIzaSyDdKs-XYJ63ovLAjojYW4TZqX49DiprQ-Y',
@@ -69,25 +74,41 @@
       const app = initializeApp(firebaseConfig);
       const auth = getAuth(app);
       const provider = new GoogleAuthProvider();
+      const loginButton = document.getElementById('googleLoginBtn');
 
-      document.getElementById('googleLoginBtn').addEventListener('click', async () => {
+      async function createSession(user) {
+        const idToken = await user.getIdToken();
+        const response = await fetch('/api/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ idToken })
+        });
+
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          throw new Error(data.error || 'Unable to sign in.');
+        }
+
+        window.location.href = '/notes';
+      }
+
+      getRedirectResult(auth).then((result) => {
+        if (result && result.user) {
+          return createSession(result.user);
+        }
+      }).catch((error) => {
+        loginButton.disabled = false;
+        alert(error.message || 'Google sign-in failed.');
+      });
+
+      loginButton.addEventListener('click', async () => {
+        loginButton.disabled = true;
+        loginButton.textContent = 'Redirecting to Google...';
         try {
-          const result = await signInWithPopup(auth, provider);
-          const idToken = await result.user.getIdToken();
-
-          const response = await fetch('/api/session', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ idToken })
-          });
-
-          if (!response.ok) {
-            const data = await response.json().catch(() => ({}));
-            throw new Error(data.error || 'Unable to sign in.');
-          }
-
-          window.location.href = '/notes';
+          await signInWithRedirect(auth, provider);
         } catch (error) {
+          loginButton.disabled = false;
+          loginButton.textContent = 'Sign in with Google';
           alert(error.message || 'Google sign-in failed.');
         }
       });
