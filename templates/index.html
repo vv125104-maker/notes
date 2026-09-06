@@ -59,6 +59,7 @@
         getAuth,
         GoogleAuthProvider,
         getRedirectResult,
+        onAuthStateChanged,
         signInWithRedirect
       } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 
@@ -75,8 +76,18 @@
       const auth = getAuth(app);
       const provider = new GoogleAuthProvider();
       const loginButton = document.getElementById('googleLoginBtn');
+      const helper = document.querySelector('.helper');
+      let sessionStarted = false;
 
       async function createSession(user) {
+        if (sessionStarted) {
+          return;
+        }
+        sessionStarted = true;
+        loginButton.disabled = true;
+        loginButton.textContent = 'Signing you in...';
+        helper.textContent = 'Completing Google sign-in...';
+
         const idToken = await user.getIdToken();
         const response = await fetch('/api/session', {
           method: 'POST',
@@ -91,6 +102,17 @@
 
         window.location.href = '/notes';
       }
+
+      onAuthStateChanged(auth, (user) => {
+        if (user) {
+          createSession(user).catch((error) => {
+            sessionStarted = false;
+            loginButton.disabled = false;
+            loginButton.textContent = 'Sign in with Google';
+            helper.textContent = error.message || 'Google sign-in failed.';
+          });
+        }
+      });
 
       getRedirectResult(auth).then((result) => {
         if (result && result.user) {
