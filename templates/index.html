@@ -63,6 +63,7 @@
         onAuthStateChanged,
         setPersistence,
         signOut,
+        signInWithPopup,
         signInWithRedirect
       } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 
@@ -144,18 +145,27 @@
 
       loginButton.addEventListener('click', async () => {
         loginButton.disabled = true;
-        loginButton.textContent = 'Redirecting to Google...';
+        loginButton.textContent = 'Opening Google...';
         try {
           await persistenceReady;
-          sessionStorage.setItem('googleSignInPending', '1');
           provider.setCustomParameters({ prompt: 'select_account' });
           await signOut(auth);
-          await signInWithRedirect(auth, provider);
+          const popupResult = signInWithPopup(auth, provider);
+          const timeout = new Promise((resolve, reject) => {
+            setTimeout(() => reject({ code: 'auth/popup-blocked' }), 8000);
+          });
+          const result = await Promise.race([popupResult, timeout]);
+          await createSession(result.user);
         } catch (error) {
-          sessionStorage.removeItem('googleSignInPending');
           loginButton.disabled = false;
           loginButton.textContent = 'Sign in with Google';
-          showAuthError(error);
+          if (error.code === 'auth/popup-blocked') {
+            sessionStorage.setItem('googleSignInPending', '1');
+            loginButton.textContent = 'Redirecting to Google...';
+            await signInWithRedirect(auth, provider);
+          } else {
+            showAuthError(error);
+          }
         }
       });
     </script>
