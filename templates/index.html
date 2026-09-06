@@ -58,8 +58,10 @@
       import {
         getAuth,
         GoogleAuthProvider,
+        browserLocalPersistence,
         getRedirectResult,
         onAuthStateChanged,
+        setPersistence,
         signInWithRedirect
       } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 
@@ -78,6 +80,7 @@
       const loginButton = document.getElementById('googleLoginBtn');
       const helper = document.querySelector('.helper');
       let sessionStarted = false;
+      const persistenceReady = setPersistence(auth, browserLocalPersistence);
 
       async function createSession(user) {
         if (sessionStarted) {
@@ -127,6 +130,7 @@
         loginButton.disabled = true;
         loginButton.textContent = 'Redirecting to Google...';
         try {
+          await persistenceReady;
           await signInWithRedirect(auth, provider);
         } catch (error) {
           loginButton.disabled = false;
