@@ -84,6 +84,17 @@
       const persistenceReady = setPersistence(auth, browserLocalPersistence);
       const redirectPending = sessionStorage.getItem('googleSignInPending') === '1';
 
+      function showAuthError(error) {
+        const code = error && error.code ? ` (${error.code})` : '';
+        let message = error && error.message ? error.message : 'Google sign-in failed.';
+        if (error && error.code === 'auth/unauthorized-domain') {
+          message = 'This site is not authorized in Firebase. Add localhost and 127.0.0.1 in Firebase Authentication > Settings > Authorized domains.';
+        } else if (error && error.code === 'auth/operation-not-allowed') {
+          message = 'Google sign-in is disabled. Enable the Google provider in Firebase Authentication > Sign-in method.';
+        }
+        helper.textContent = `${message}${code}`;
+      }
+
       async function createSession(user) {
         if (sessionStarted) {
           return;
@@ -114,7 +125,7 @@
             sessionStarted = false;
             loginButton.disabled = false;
             loginButton.textContent = 'Sign in with Google';
-            helper.textContent = error.message || 'Google sign-in failed.';
+            showAuthError(error);
           });
         }
       });
@@ -128,7 +139,7 @@
         sessionStorage.removeItem('googleSignInPending');
         loginButton.disabled = false;
         loginButton.textContent = 'Sign in with Google';
-        alert(error.message || 'Google sign-in failed.');
+        showAuthError(error);
       });
 
       loginButton.addEventListener('click', async () => {
@@ -144,7 +155,7 @@
           sessionStorage.removeItem('googleSignInPending');
           loginButton.disabled = false;
           loginButton.textContent = 'Sign in with Google';
-          alert(error.message || 'Google sign-in failed.');
+          showAuthError(error);
         }
       });
     </script>
