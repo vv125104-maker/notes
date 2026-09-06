@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Secure Notes</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background: linear-gradient(135deg, #eef4ff, #f9fafb);
+        margin: 0;
+        display: grid;
+        place-items: center;
+        min-height: 100vh;
+      }
+      .card {
+        background: white;
+        border-radius: 18px;
+        padding: 32px 28px;
+        box-shadow: 0 12px 28px rgba(0,0,0,0.08);
+        text-align: center;
+        width: min(90vw, 420px);
+      }
+      h1 {
+        margin-bottom: 12px;
+      }
+      p {
+        color: #555;
+        margin-bottom: 22px;
+      }
+      button {
+        border: none;
+        border-radius: 10px;
+        padding: 12px 18px;
+        background: #2563eb;
+        color: white;
+        font-weight: 600;
+        cursor: pointer;
+        font-size: 15px;
+      }
+      .helper {
+        margin-top: 16px;
+        font-size: 14px;
+        color: #4b5563;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>Secure Notes</h1>
+      <p>Keep your notes private and easy to access.</p>
+      <button id="googleLoginBtn" type="button">Sign in with Google</button>
+      <div class="helper">Use your Google account to unlock your personal notes.</div>
+    </div>
+
+    <script type="module">
+      import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+      import { getAuth, GoogleAuthProvider, signInWithPopup } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+
+      const firebaseConfig = {
+        apiKey: 'AIzaSyDdKs-XYJ63ovLAjojYW4TZqX49DiprQ-Y',
+        authDomain: 'notes-c6ddc.firebaseapp.com',
+        projectId: 'notes-c6ddc',
+        storageBucket: 'notes-c6ddc.firebasestorage.app',
+        messagingSenderId: '744176142478',
+        appId: '1:744176142478:web:72ca742fb27570151321df'
+      };
+
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+      const provider = new GoogleAuthProvider();
+
+      document.getElementById('googleLoginBtn').addEventListener('click', async () => {
+        try {
+          const result = await signInWithPopup(auth, provider);
+          const idToken = await result.user.getIdToken();
+
+          const response = await fetch('/api/session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ idToken })
+          });
+
+          if (!response.ok) {
+            const data = await response.json().catch(() => ({}));
+            throw new Error(data.error || 'Unable to sign in.');
+          }
+
+          window.location.href = '/notes';
+        } catch (error) {
+          alert(error.message || 'Google sign-in failed.');
+        }
+      });
+    </script>
+  </body>
+</html>
